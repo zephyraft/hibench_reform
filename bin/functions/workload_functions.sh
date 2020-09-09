@@ -54,7 +54,7 @@ function timestamp(){		# get current timestamp
     nanosec=`date +%N`
     re='^[0-9]+$'
     if ! [[ $nanosec =~ $re ]] ; then
-	$nanosec=0
+	  nanosec=0
     fi
     tmp=`expr $sec \* 1000 `
     msec=`expr $nanosec / 1000000 `

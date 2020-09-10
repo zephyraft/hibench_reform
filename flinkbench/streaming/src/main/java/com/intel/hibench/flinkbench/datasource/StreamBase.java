@@ -17,37 +17,36 @@
 
 package com.intel.hibench.flinkbench.datasource;
 
-import com.intel.hibench.flinkbench.util.KeyedTupleSchema;
 import com.intel.hibench.flinkbench.util.FlinkBenchConfig;
-
+import com.intel.hibench.flinkbench.util.KeyedTupleSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 
 import java.util.Properties;
 
 public abstract class StreamBase {
 
-  private SourceFunction<Tuple2<String, String>> dataStream;
+    private SourceFunction<Tuple2<String, String>> dataStream;
 
-  public SourceFunction<Tuple2<String, String>> getDataStream() {
-    return this.dataStream;
-  }
+    public SourceFunction<Tuple2<String, String>> getDataStream() {
+        return this.dataStream;
+    }
 
-  public void createDataStream(FlinkBenchConfig config) throws Exception {
+    public void createDataStream(FlinkBenchConfig config) throws Exception {
 
-    Properties properties = new Properties();
-    properties.setProperty("zookeeper.connect", config.zkHost);
-    properties.setProperty("group.id", config.consumerGroup);
-    properties.setProperty("bootstrap.servers", config.brokerList);
-    properties.setProperty("auto.offset.reset", config.offsetReset);
+        Properties properties = new Properties();
+        properties.setProperty("zookeeper.connect", config.zkHost);
+        properties.setProperty("group.id", config.consumerGroup);
+        properties.setProperty("bootstrap.servers", config.brokerList);
+        properties.setProperty("auto.offset.reset", config.offsetReset);
 
-    this.dataStream = new FlinkKafkaConsumer08<Tuple2<String, String>>(
-        config.topic,
-        new KeyedTupleSchema(),
-        properties);
-  }
+        this.dataStream = new FlinkKafkaConsumer<>(
+                config.topic,
+                new KeyedTupleSchema(),
+                properties);
+    }
 
-  public void processStream(FlinkBenchConfig config) throws Exception {
-  }
+    public void processStream(FlinkBenchConfig config) throws Exception {
+    }
 }

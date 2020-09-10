@@ -17,38 +17,36 @@
 
 package com.intel.hibench.flinkbench.microbench;
 
+import com.intel.hibench.common.streaming.metrics.KafkaReporter;
 import com.intel.hibench.flinkbench.datasource.StreamBase;
 import com.intel.hibench.flinkbench.util.FlinkBenchConfig;
-
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
-import com.intel.hibench.common.streaming.metrics.KafkaReporter;
-
 public class Identity extends StreamBase {
 
-  @Override
-  public void processStream(final FlinkBenchConfig config) throws Exception {
+    @Override
+    public void processStream(final FlinkBenchConfig config) throws Exception {
 
-    final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.setBufferTimeout(config.bufferTimeout);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setBufferTimeout(config.bufferTimeout);
 
-    createDataStream(config);
-    DataStream<Tuple2<String, String>> dataStream = env.addSource(getDataStream());
+        createDataStream(config);
+        DataStream<Tuple2<String, String>> dataStream = env.addSource(getDataStream());
 
-    dataStream.map(new MapFunction<Tuple2<String, String>, Tuple2<String, String>>() {
+        dataStream.map(new MapFunction<Tuple2<String, String>, Tuple2<String, String>>() {
 
-      @Override
-      public Tuple2<String, String> map(Tuple2<String, String> value) throws Exception {
-        KafkaReporter kafkaReporter = new KafkaReporter(config.reportTopic, config.brokerList);
+            @Override
+            public Tuple2<String, String> map(Tuple2<String, String> value) throws Exception {
+                KafkaReporter kafkaReporter = new KafkaReporter(config.reportTopic, config.brokerList);
 
-        kafkaReporter.report(Long.parseLong(value.f0), System.currentTimeMillis());
-        return value;
-      }
-    });
+                kafkaReporter.report(Long.parseLong(value.f0), System.currentTimeMillis());
+                return value;
+            }
+        });
 
-    env.execute("Identity Job");
-  }
+        env.execute("Identity Job");
+    }
 }

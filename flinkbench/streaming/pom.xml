@@ -50,6 +50,24 @@
       <groupId>com.intel.hibench</groupId>
       <artifactId>hibench-common</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>kafka-clients</artifactId>
+          <groupId>org.apache.kafka</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>zookeeper</artifactId>
+          <groupId>org.apache.zookeeper</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>log4j</artifactId>
+          <groupId>log4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>kafka_2.11</artifactId>
+          <groupId>org.apache.kafka</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -59,7 +77,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-kafka-0.8_${scala.binary.version}</artifactId>
+      <artifactId>flink-connector-kafka_${scala.binary.version}</artifactId>
       <version>${flinkVersion}</version>
       <scope>compile</scope>
     </dependency>
@@ -68,6 +86,16 @@
       <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
       <version>${flinkVersion}</version>
       <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_${scala.binary.version}</artifactId>
+      <version>${kafkaVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.101tec</groupId>
+      <artifactId>zkclient</artifactId>
+      <version>0.11</version>
     </dependency>
   </dependencies>
 
@@ -90,6 +118,14 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>7</source>
+          <target>7</target>
+        </configuration>
       </plugin>
     </plugins>
   </build>

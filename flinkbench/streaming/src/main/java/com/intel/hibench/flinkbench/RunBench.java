@@ -17,61 +17,73 @@
 
 package com.intel.hibench.flinkbench;
 
-import com.intel.hibench.flinkbench.microbench.*;
+import com.intel.hibench.common.streaming.ConfigLoader;
+import com.intel.hibench.common.streaming.Platform;
+import com.intel.hibench.common.streaming.StreamBenchConfig;
+import com.intel.hibench.common.streaming.metrics.MetricsUtil;
+import com.intel.hibench.flinkbench.microbench.FixedWindow;
+import com.intel.hibench.flinkbench.microbench.Identity;
+import com.intel.hibench.flinkbench.microbench.Repartition;
+import com.intel.hibench.flinkbench.microbench.WordCount;
 import com.intel.hibench.flinkbench.util.BenchLogUtil;
 import com.intel.hibench.flinkbench.util.FlinkBenchConfig;
-import com.intel.hibench.common.streaming.ConfigLoader;
-import com.intel.hibench.common.streaming.metrics.MetricsUtil;
-import com.intel.hibench.common.streaming.StreamBenchConfig;
-import com.intel.hibench.common.streaming.Platform;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.ProducerConfig;
+
+import java.util.Collections;
+import java.util.Properties;
 
 public class RunBench {
-  public static void main(String[] args) throws Exception {
-    runAll(args);
-  }
-
-  public static void runAll(String[] args) throws Exception {
-
-    if (args.length < 1)
-      BenchLogUtil.handleError("Usage: RunBench <ConfigFile>");
-
-    ConfigLoader cl = new ConfigLoader(args[0]);
-
-    // Prepare configuration
-    FlinkBenchConfig conf = new FlinkBenchConfig();
-    conf.brokerList = cl.getProperty(StreamBenchConfig.KAFKA_BROKER_LIST);
-    conf.zkHost = cl.getProperty(StreamBenchConfig.ZK_HOST);
-    conf.testCase = cl.getProperty(StreamBenchConfig.TESTCASE);
-    conf.topic = cl.getProperty(StreamBenchConfig.KAFKA_TOPIC);
-    conf.consumerGroup = cl.getProperty(StreamBenchConfig.CONSUMER_GROUP);
-    conf.bufferTimeout = Long.parseLong(cl.getProperty(StreamBenchConfig.FLINK_BUFFERTIMEOUT));
-    conf.offsetReset = cl.getProperty(StreamBenchConfig.KAFKA_OFFSET_RESET);
-    conf.windowDuration = cl.getProperty(StreamBenchConfig.FixWINDOW_DURATION);
-    conf.windowSlideStep = cl.getProperty(StreamBenchConfig.FixWINDOW_SLIDESTEP);
-
-    conf.checkpointDuration = Long.parseLong(cl.getProperty(StreamBenchConfig.FLINK_CHECKPOINTDURATION));
-    int producerNum = Integer.parseInt(cl.getProperty(StreamBenchConfig.DATAGEN_PRODUCER_NUMBER));
-    long recordsPerInterval = Long.parseLong(cl.getProperty(StreamBenchConfig.DATAGEN_RECORDS_PRE_INTERVAL));
-    int intervalSpan = Integer.parseInt(cl.getProperty(StreamBenchConfig.DATAGEN_INTERVAL_SPAN));
-    conf.reportTopic = MetricsUtil.getTopic(Platform.FLINK, conf.testCase, producerNum, recordsPerInterval, intervalSpan);
-    int reportTopicPartitions = Integer.parseInt(cl.getProperty(StreamBenchConfig.KAFKA_TOPIC_PARTITIONS));
-    MetricsUtil.createTopic(conf.zkHost, conf.reportTopic, reportTopicPartitions);
-
-    // Main testcase logic
-    String testCase = conf.testCase;
-
-    if (testCase.equals("wordcount")) {
-      WordCount wordCount = new WordCount();
-      wordCount.processStream(conf);
-    } else if (testCase.equals("identity")) {
-      Identity identity = new Identity();
-      identity.processStream(conf);
-    } else if (testCase.equals("repartition")) {
-      Repartition repartition = new Repartition();
-      repartition.processStream(conf);
-    } else if (testCase.equals("fixwindow")) {
-      FixedWindow window = new FixedWindow();
-      window.processStream(conf);
+    public static void main(String[] args) throws Exception {
+        runAll(args);
     }
-  }
+
+    public static void runAll(String[] args) throws Exception {
+        if (args.length < 1)
+            BenchLogUtil.handleError("Usage: RunBench <ConfigFile>");
+
+        ConfigLoader cl = new ConfigLoader(args[0]);
+
+        // Prepare configuration
+        FlinkBenchConfig conf = new FlinkBenchConfig();
+        conf.brokerList = cl.getProperty(StreamBenchConfig.KAFKA_BROKER_LIST);
+        conf.zkHost = cl.getProperty(StreamBenchConfig.ZK_HOST);
+        conf.testCase = cl.getProperty(StreamBenchConfig.TESTCASE);
+        conf.topic = cl.getProperty(StreamBenchConfig.KAFKA_TOPIC);
+        conf.consumerGroup = cl.getProperty(StreamBenchConfig.CONSUMER_GROUP);
+        conf.bufferTimeout = Long.parseLong(cl.getProperty(StreamBenchConfig.FLINK_BUFFERTIMEOUT));
+        conf.offsetReset = cl.getProperty(StreamBenchConfig.KAFKA_OFFSET_RESET);
+        conf.windowDuration = cl.getProperty(StreamBenchConfig.FixWINDOW_DURATION);
+        conf.windowSlideStep = cl.getProperty(StreamBenchConfig.FixWINDOW_SLIDESTEP);
+
+        conf.checkpointDuration = Long.parseLong(cl.getProperty(StreamBenchConfig.FLINK_CHECKPOINTDURATION));
+        int producerNum = Integer.parseInt(cl.getProperty(StreamBenchConfig.DATAGEN_PRODUCER_NUMBER));
+        long recordsPerInterval = Long.parseLong(cl.getProperty(StreamBenchConfig.DATAGEN_RECORDS_PRE_INTERVAL));
+        int intervalSpan = Integer.parseInt(cl.getProperty(StreamBenchConfig.DATAGEN_INTERVAL_SPAN));
+        conf.reportTopic = MetricsUtil.getTopic(Platform.FLINK, conf.testCase, producerNum, recordsPerInterval, intervalSpan);
+        int reportTopicPartitions = Integer.parseInt(cl.getProperty(StreamBenchConfig.KAFKA_TOPIC_PARTITIONS));
+
+        Properties props = new Properties();
+        props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, conf.brokerList);
+        AdminClient adminClient = AdminClient.create(props);
+        adminClient.createTopics(Collections.singleton(new NewTopic(conf.reportTopic, reportTopicPartitions, (short) 1)));
+
+        // Main testcase logic
+        String testCase = conf.testCase;
+
+        if (testCase.equals("wordcount")) {
+            WordCount wordCount = new WordCount();
+            wordCount.processStream(conf);
+        } else if (testCase.equals("identity")) {
+            Identity identity = new Identity();
+            identity.processStream(conf);
+        } else if (testCase.equals("repartition")) {
+            Repartition repartition = new Repartition();
+            repartition.processStream(conf);
+        } else if (testCase.equals("fixwindow")) {
+            FixedWindow window = new FixedWindow();
+            window.processStream(conf);
+        }
+    }
 }
